@@ -56,6 +56,6 @@ class Torrent:
 
 
 def parse_torrent_file(filename):
-    with file(filename):
-        bencoded_torrent = filename.read()   
+    with file(filename) as torrent_file:
+        bencoded_torrent = torrent_file.read()   
     return Torrent(bencode.bdecode(bencoded_torrent))
