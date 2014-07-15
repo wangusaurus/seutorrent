@@ -31,7 +31,7 @@ class Torrent:
         self._encoding = torrent_dict['encoding']
 
         # Operational Information
-        self.peer_list = []
+        self._peer_list = []
         self._tracker_id = None
         self._interval = None
         self._min_interval = None
@@ -83,6 +83,10 @@ class Torrent:
             return sum((x['length'] for x in self.info['files']))
 
     @property
+    def peer_list(self):
+        return self._peer_list
+
+    @property
     def tracker_id(self):
         return self._tracker_id
 
@@ -123,28 +127,18 @@ class Torrent:
             for i in decoded:
                 announce_response[i] = decoded[i]
 
-            if 'failure reason' in announce_response:
-                raise AnnounceError(announce_response['failure reason'])
-
-            #TODO torrent protocol defines warnings. What do we do with those?
-            if 'warning message' in announce_response:
-                pass
-
             self._tracker_id = announce_response['tracker id']
             self._interval = announce_response['interval']
             self._min_interval = announce_response['min interval']
-            self.peer_list = Torrent.parse_compact_peers(
+            self._peer_list = Torrent.parse_compact_peers(
                 announce_response['peers'])
 
             return announce_response
         else:
-            raise AnnounceError("Failed to make HTTP request to tracker")
+            raise RuntimeError("Failed to make HTTP request to tracker")
 
 
 def parse_torrent_file(filename):
     with file(filename) as torrent_file:
         bencoded_torrent = torrent_file.read()
     return Torrent(bencode.bdecode(bencoded_torrent))
-
-class AnnounceError(RuntimeError):
-    pass
