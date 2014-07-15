@@ -1,3 +1,10 @@
+"""
+torrent.py
+
+This module drives parsing and handling torrent metadata.
+
+"""
+
 import bencode
 import hashlib
 import requests
@@ -139,6 +146,7 @@ class Torrent:
 
 
 def parse_torrent_file(filename):
+    """Reads a torrent file at filename, returning a torrent object"""
     with file(filename) as torrent_file:
         bencoded_torrent = torrent_file.read()
     return Torrent(bencode.bdecode(bencoded_torrent))
