@@ -12,6 +12,8 @@ import urllib
 
 from collections import defaultdict
 
+from peer import Peer
+
 
 class Torrent:
     def __init__(self, bdecoded):
@@ -102,7 +104,8 @@ class Torrent:
         return 'length' in self._info
 
     @classmethod
-    def parse_compact_peers(cls, peer_string):
+    def parse_compact_peers(cls, peers_string):
+        #TODO
         pass
 
     def announce(self, peer_id, port, uploaded, downloaded, left, event):
@@ -110,6 +113,7 @@ class Torrent:
         headers = {
             'User-Agent': 'Seutorrent-core version 0.1'
         }
+        #TODO compact should be 1, use 0 for now for code ease
         get_params = {
             'info_hash': self.info_hash,
             'peer_id': peer_id,
@@ -117,7 +121,7 @@ class Torrent:
             'uploaded': uploaded,
             'downloaded': downloaded,
             'left': left,
-            'compact': '1',
+            'compact': '0',
             'event': event
         }
 
@@ -137,8 +141,8 @@ class Torrent:
             self._tracker_id = announce_response['tracker id']
             self._interval = announce_response['interval']
             self._min_interval = announce_response['min interval']
-            self._peer_list = Torrent.parse_compact_peers(
-                announce_response['peers'])
+            self._peer_list = [Peer(p['ip'], p['port']) for p in
+                               announce_response['peers']]
 
             return announce_response
         else:
