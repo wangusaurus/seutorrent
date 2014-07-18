@@ -13,11 +13,12 @@ import urllib
 from collections import defaultdict
 
 from peer import Peer
+from seutorrent import core
 
 
-class Torrent:
+class TorrentMeta:
+    """A read-only wrapper around a parsed .torrent file"""
     def __init__(self, bdecoded):
-        # Torrent metadata
         torrent_dict = defaultdict(lambda: None)
         for i in bdecoded:
             torrent_dict[i] = bdecoded[i]
@@ -103,30 +104,46 @@ class Torrent:
         """Returns true if single file or false if multi-file torrent"""
         return 'length' in self._info
 
+
+class Torrent:
+    def __init__(self, torrent_meta, uploaded, downloaded, left, state):
+        self.meta = torrent_meta
+
+        self.uploaded = uploaded
+        self.downloaded = downloaded
+        self.left = left
+        self.state = state
+
+        # Acquired from tracker
+        self.peer_list = []
+        self.tracker_id = None
+        self.interval = None
+        self.min_interval = None
+
     @classmethod
     def parse_compact_peers(cls, peers_string):
         #TODO
         pass
 
-    def announce(self, peer_id, port, uploaded, downloaded, left, event):
+    def _announce(self, peer_id, port, event):
         """Announce inclusion in swarm to tracker"""
         headers = {
-            'User-Agent': 'Seutorrent-core version 0.1'
+            'User-Agent': 'Seutorrent-core version %s' % (core.version)
         }
         #TODO compact should be 1, use 0 for now for code ease
         get_params = {
-            'info_hash': self.info_hash,
+            'info_hash': self.meta.info_hash,
             'peer_id': peer_id,
             'port': port,
-            'uploaded': uploaded,
-            'downloaded': downloaded,
-            'left': left,
+            'uploaded': str(self.uploaded),
+            'downloaded': str(self.downloaded),
+            'left': str(self.left),
             'compact': '0',
             'event': event
         }
 
-        if self._tracker_id is not None:
-            get_params['trackerid'] = self._tracker_id
+        if self.tracker_id is not None:
+            get_params['trackerid'] = self.tracker_id
 
         resp = requests.get(self.announce_url, params=get_params,
                             headers=headers)
@@ -138,19 +155,24 @@ class Torrent:
             for i in decoded:
                 announce_response[i] = decoded[i]
 
-            self._tracker_id = announce_response['tracker id']
-            self._interval = announce_response['interval']
-            self._min_interval = announce_response['min interval']
-            self._peer_list = [Peer(p['ip'], p['port']) for p in
-                               announce_response['peers']]
-
+            self.tracker_id = announce_response['tracker id']
+            self.interval = announce_response['interval']
+            self.min_interval = announce_response['min interval']
+            self.peer_list = [Peer(p['ip'], p['port']) for p in
+                              announce_response['peers']]
             return announce_response
         else:
             raise RuntimeError("Failed to make HTTP request to tracker")
+
+    def start_or_resume(self):
+        pass
+
+    def stop(self):
+        pass
 
 
 def parse_torrent_file(filename):
     """Reads a torrent file at filename, returning a torrent object"""
     with file(filename) as torrent_file:
         bencoded_torrent = torrent_file.read()
-    return Torrent(bencode.bdecode(bencoded_torrent))
+    return TorrentMeta(bencode.bdecode(bencoded_torrent))

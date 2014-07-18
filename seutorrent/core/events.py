@@ -31,7 +31,7 @@ class EventEmitter:
                 listener(*args)
             except BaseException, e:
                 # Error listener should not call itself to avoid loops
-                if self.event_name != 'error':
+                if self.event_name != 'error':  # This is bad loop detection
                     err_msg = "Error running %s listener %s: %s" % (
                         self.event_name, l_id, e.message)
                     on_error.emit_event(err_msg)

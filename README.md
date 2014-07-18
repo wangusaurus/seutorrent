@@ -10,7 +10,7 @@ Use virtualenv and pip!
 ```bash
 virtualenv env
 source env/bin/activate
-pip install `cat requirements.txt`
+pip install -r requirements.txt
 ```
 
 
